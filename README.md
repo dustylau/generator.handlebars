@@ -99,7 +99,7 @@ Create a Template Loader and pass it the path to the directory containing the te
 The loader will automatically load all template files ending in ".hbs" and their corresponding settings ".hbs.settings.json"
 
 ```javascript
-var loader = new Generator.TemplateLoader('./sample-templates');
+const loader = new Generator.TemplateLoader('./sample-templates');
 ```
 ___
 
@@ -138,4 +138,71 @@ loader.load(function (templates) {
         template.write();
     }
 });
+```
+___
+
+### 7. Async/Await Support
+
+All core operations support async/await for non-blocking I/O:
+
+```javascript
+// Async generation with TemplateLoader
+const loader = new Generator.TemplateLoader('./sample-templates');
+loader.load();
+const results = await loader.generateAsync(model, { write: true });
+
+// One-liner: load and generate
+const results = await Generator.TemplateLoader.loadAndGenerateAsync('./sample-templates', model);
+
+// Async file writing with Template
+const template = new Generator.Template('./sample-templates/sample.hbs');
+const results = template.generate(model);
+await template.writeAsync(results);
+```
+___
+
+### 8. Validation & Preview Mode
+
+Validate templates before generation and preview output without writing:
+
+```javascript
+// Validate a single template
+const template = new Generator.Template('./sample-templates/sample.hbs');
+const isValid = template.validate();
+if (!isValid) console.error(template.errors);
+
+// Validate all templates in a loader
+const loader = new Generator.TemplateLoader('./sample-templates');
+loader.load();
+const allValid = loader.validateAll();
+
+// Preview mode (dry-run) - get output without writing files
+const previews = loader.preview(model);
+previews.forEach(p => {
+  console.log(`Would write to: ${p.filePath}`);
+  console.log(`Content: ${p.content}`);
+});
+
+// Generate without writing
+const results = loader.generate(model, { write: false });
+```
+___
+
+### 9. Error Handling
+
+Classes accumulate non-fatal errors in an `errors` array:
+
+```javascript
+const template = new Generator.Template(path);
+template.generate(model);
+
+if (template.errors.length > 0) {
+  template.errors.forEach(err => console.error(err));
+}
+
+// TemplateLoader supports continueOnError option
+const loader = new Generator.TemplateLoader(dir);
+loader.load();
+loader.generate(model, { continueOnError: true });
+console.log(loader.errors); // Array of errors from all templates
 ```

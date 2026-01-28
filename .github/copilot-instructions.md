@@ -84,11 +84,59 @@ npm run generate      # Run sample generation (outputs to ./Generated/)
 npm run lint          # Run ESLint
 ```
 
+## Async API
+
+All core operations support async/await for non-blocking I/O:
+
+```javascript
+const { TemplateLoader, Template } = require('generator.handlebars');
+
+// Async generation with TemplateLoader
+const loader = new TemplateLoader(templateDir);
+loader.load();
+const results = await loader.generateAsync(model, { write: true });
+
+// One-liner: load and generate
+const results = await TemplateLoader.loadAndGenerateAsync(templateDir, model);
+
+// Async file writing with Template
+const template = new Template(templatePath);
+const results = template.generate(model);
+await template.writeAsync(results);
+```
+
+## Validation & Preview Mode
+
+Validate templates before generation and preview output without writing:
+
+```javascript
+// Validate a single template
+const template = new Template(templatePath);
+const isValid = template.validate();
+if (!isValid) console.error(template.errors);
+
+// Validate all templates in a loader
+const loader = new TemplateLoader(templateDir);
+loader.load();
+const allValid = loader.validateAll();
+
+// Preview mode (dry-run) - get output without writing files
+const previews = loader.preview(model);
+previews.forEach((p) => {
+  console.log(`Would write to: ${p.filePath}`);
+  console.log(`Content: ${p.content}`);
+});
+
+// Generate without writing
+const results = loader.generate(model, { write: false });
+```
+
 ## Code Patterns
 
 - **Properties**: Getter/setter with `_` prefix for private fields
 - **Exports**: CommonJS (`module.exports` / `exports.ClassName`)
 - **Error handling**: Classes expose `errors` array; throw `Error` for fatal issues
+- **Async methods**: Use `Async` suffix (e.g., `generateAsync`, `writeAsync`)
 - **Variables**: Use `const`/`let` (no `var`), arrow functions where appropriate
 - **Documentation**: JSDoc comments on public APIs
 
@@ -106,8 +154,10 @@ npm run lint          # Run ESLint
 
 Tests use Jest in `lib/__tests__/`. Run with `npm test`.
 
-- All helpers have unit tests covering normal and edge cases
+- **Helpers.test.js**: Unit tests for all helper functions (71+ tests)
+- **integration.test.js**: End-to-end tests for Template, TemplateLoader, FileHelper
 - Test files follow `*.test.js` naming convention
+- Uses `mock-fs` for filesystem mocking in integration tests
 
 ## Sample Templates
 
@@ -117,3 +167,22 @@ See `sample-templates/` for working examples:
 - `sample-full-model.hbs` - Single output from full model
 - `sample-full-model-split.hbs` - Split output into multiple files
 - `sample-from-list.hbs` - Alternative target array
+
+## Error Handling
+
+Classes accumulate non-fatal errors in an `errors` array:
+
+```javascript
+const template = new Template(path);
+template.generate(model);
+
+if (template.errors.length > 0) {
+  template.errors.forEach((err) => console.error(err));
+}
+
+// TemplateLoader supports continueOnError option
+const loader = new TemplateLoader(dir);
+loader.load();
+loader.generate(model, { continueOnError: true });
+console.log(loader.errors); // Array of errors from all templates
+```
