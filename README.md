@@ -236,4 +236,171 @@ const loader = new Generator.TemplateLoader(dir);
 loader.load();
 loader.generate(model, { continueOnError: true });
 console.log(loader.errors); // Array of errors from all templates
+```___
+
+### 10. Handlebars Partials
+
+Partials allow you to create reusable template fragments. The library supports partials with the `.hbs.partial` or `.partial.hbs` extension.
+
+#### Automatic Loading
+
+Partials in template directories are automatically loaded when using `TemplateLoader`:
+
+```javascript
+const loader = new Generator.TemplateLoader('./sample-templates');
+loader.load(); // Automatically registers partials from the directory
+
+console.log(loader.partials); // ['header', 'itemDetails']
+```
+
+#### Using Partials in Templates
+
+Reference partials with the `{{> partialName}}` syntax:
+
+```hbs
+{{!-- header.hbs.partial --}}
+==========================
+{{title}}
+Generated: {{timestamp}}
+==========================
+
+{{!-- main template --}}
+{{> header title="My Document" timestamp="2024-01-01"}}
+
+{{#each items}}
+  {{> itemDetails}}
+{{/each}}
+```
+
+#### Manual Partial Registration
+
+You can also register partials programmatically:
+
+```javascript
+const { HandlebarsHelpers } = require('generator.handlebars');
+
+// Register from string
+HandlebarsHelpers.registerPartial('myPartial', '<div>{{name}}</div>');
+
+// Register from file
+HandlebarsHelpers.registerPartialFromFile('header', './partials/header.hbs.partial');
+
+// Load all partials from a directory
+const registered = HandlebarsHelpers.loadPartialsFromDirectory('./partials');
+console.log(registered); // ['header', 'footer', 'sidebar']
+
+// Get all registered partials
+const allPartials = HandlebarsHelpers.getPartials();
+
+// Unregister a partial
+HandlebarsHelpers.unregisterPartial('myPartial');
+```
+
+#### Partial File Naming Convention
+
+- `name.hbs.partial` - Partial named "name"
+- `name.partial.hbs` - Also supported, partial named "name"___
+
+### 11. Plugin System
+
+Extend the generator with custom helpers, partials, and lifecycle hooks:
+
+```javascript
+const { pluginManager, PluginManager } = require('generator.handlebars');
+
+// Register a plugin with custom helpers
+pluginManager.register({
+  name: 'my-custom-helpers',
+  version: '1.0.0',
+  helpers: {
+    pluralize: (word) => word + 's',
+    formatDate: (date) => new Date(date).toLocaleDateString()
+  },
+  partials: {
+    copyright: '© {{year}} {{company}}'
+  }
+});
+
+// Use factory methods for simple plugins
+const helperPlugin = PluginManager.createHelperPlugin('string-utils', {
+  capitalize: (str) => str.charAt(0).toUpperCase() + str.slice(1)
+});
+pluginManager.register(helperPlugin);
+
+// Check registered plugins
+console.log(pluginManager.plugins); // ['my-custom-helpers', 'string-utils']
+
+// Unregister when done
+pluginManager.unregister('my-custom-helpers');
+```
+
+#### Plugin Lifecycle Hooks
+
+Plugins can hook into the generation lifecycle:
+
+```javascript
+pluginManager.register({
+  name: 'logging-plugin',
+  onBeforeGenerate: (model) => console.log('Starting generation...'),
+  onAfterGenerate: (results) => console.log(`Generated ${results.length} files`),
+  transformModel: (model) => ({ ...model, timestamp: new Date() })
+});
+```
+___
+
+### 12. TypeScript Support
+
+The package includes TypeScript declarations for full IDE support:
+
+```typescript
+import Generator from 'generator.handlebars';
+
+const loader = new Generator.TemplateLoader('./templates');
+loader.load();
+
+const results = await loader.generateAsync(model, { write: true });
+```
+___
+
+### 13. Custom Error Classes
+
+The package provides detailed error classes for better debugging:
+
+```javascript
+const { 
+  GeneratorError,
+  TemplateLoadError,
+  TemplateCompileError,
+  FileError,
+  formatErrorSummary
+} = require('generator.handlebars');
+
+try {
+  // ... generation code
+} catch (err) {
+  if (err instanceof TemplateCompileError) {
+    console.log(err.toDetailedString());
+    // [TEMPLATE_COMPILE_ERROR] Failed to compile template
+    //   Template: myTemplate
+    //   File: myTemplate.hbs
+    //   Line: 42
+  }
+}
+
+// Format multiple errors
+console.log(formatErrorSummary(loader.errors));
+```
+___
+
+### 14. JSON Schema for Settings
+
+Template settings files support JSON Schema for IDE validation:
+
+```json
+{
+  "$schema": "node_modules/generator.handlebars/schemas/template-settings.schema.json",
+  "Target": "Items",
+  "TargetItem": "item",
+  "ExportPath": ".\\Generated\\\\{{item.Name}}.cs"
+}
 ```

@@ -1,0 +1,9 @@
+{{!-- 
+  Header partial - reusable header component
+  Usage: {{> header}}
+  Or with context: {{> header title="Custom Title"}}
+--}}
+================================================================================
+  {{#if title}}{{title}}{{else}}Generated File{{/if}}
+  Generated: {{now}}
+================================================================================

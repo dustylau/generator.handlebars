@@ -1,6 +1,7 @@
 {
-    "Target": "Items",
-    "TargetItem": "item",
-    "ExportPath": ".\\Generated\\Items\\\\{{item.Name}}.txt",
-    "AppendToExisting": false
+  "$schema": "../schemas/template-settings.schema.json",
+  "Target": "Items",
+  "TargetItem": "item",
+  "ExportPath": ".\\Generated\\Items\\\\{{item.Name}}.txt",
+  "AppendToExisting": false
 }

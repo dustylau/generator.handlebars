@@ -1,0 +1,12 @@
+{{!-- 
+  Item details partial - displays item information
+  Usage: {{> itemDetails item=item}}
+--}}
+  Name: {{item.Name}}
+  Description: {{item.Description}}
+  {{#if item.Options}}
+  Options:
+    {{#each item.Options}}
+    - {{Id}}: {{Description}}
+    {{/each}}
+  {{/if}}

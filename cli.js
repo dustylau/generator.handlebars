@@ -65,10 +65,7 @@ program
   .description('Generate files from templates')
   .requiredOption('-t, --templates <path>', 'Path to templates directory')
   .requiredOption('-m, --model <path>', 'Path to model JSON file')
-  .option(
-    '-o, --output <path>',
-    'Output directory (overrides template settings)',
-  )
+  .option('-o, --output <path>', 'Output directory (overrides template settings)')
   .option('--dry-run', 'Preview output without writing files')
   .option('--continue-on-error', 'Continue processing if a template fails')
   .option('-v, --verbose', 'Show detailed output')
@@ -136,9 +133,7 @@ program
 
         if (loader.errors.length > 0) {
           console.log('\n⚠️  Warnings/Errors:');
-          loader.errors.forEach((err) =>
-            console.log(`   - ${err.message || err}`),
-          );
+          loader.errors.forEach((err) => console.log(`   - ${err.message || err}`));
         }
       } catch (error) {
         console.error(`❌ Generation failed: ${error.message}`);
@@ -246,12 +241,15 @@ program
     loader.load();
 
     if (options.json) {
-      const templateInfo = loader.templates.map((t) => ({
-        name: t.name,
-        path: t.file,
-        settingsPath: t.settingsFile,
-        settings: t.settings,
-      }));
+      const templateInfo = {
+        templates: loader.templates.map((t) => ({
+          name: t.name,
+          path: t.file,
+          settingsPath: t.settingsFile,
+          settings: t.settings,
+        })),
+        partials: loader.partials,
+      };
       console.log(JSON.stringify(templateInfo, null, 2));
     } else {
       console.log(`Templates in ${templateDir}:\n`);
@@ -262,6 +260,14 @@ program
         console.log('');
       }
       console.log(`Total: ${loader.templates.length} template(s)`);
+
+      if (loader.partials.length > 0) {
+        console.log(`\nPartials:`);
+        for (const partial of loader.partials) {
+          console.log(`  🧩 ${partial}`);
+        }
+        console.log(`\nTotal: ${loader.partials.length} partial(s)`);
+      }
     }
   });
 
@@ -315,9 +321,7 @@ program
 
         if (loader.errors.length > 0) {
           console.log('   ⚠️  Warnings:');
-          loader.errors.forEach((err) =>
-            console.log(`      - ${err.message || err}`),
-          );
+          loader.errors.forEach((err) => console.log(`      - ${err.message || err}`));
         }
       } catch (error) {
         const timestamp = new Date().toLocaleTimeString();
@@ -342,16 +346,14 @@ program
           stabilityThreshold: 100,
           pollInterval: 50,
         },
-      },
+      }
     );
 
     let debounceTimer = null;
 
     watcher.on('all', (event, filePath) => {
       if (options.verbose) {
-        console.log(
-          `   📝 ${event}: ${path.relative(process.cwd(), filePath)}`,
-        );
+        console.log(`   📝 ${event}: ${path.relative(process.cwd(), filePath)}`);
       }
 
       // Debounce to avoid multiple regenerations

@@ -15,7 +15,7 @@ A Handlebars-based code generation library that transforms JSON models into text
 | `TemplateSettings`  | Parses settings JSON with defaults for target, export path, split behavior        |
 | `TemplateResult`    | Holds generated content and writes to filesystem                                  |
 | `TemplateBuilder`   | Creates templates from multiple source files with replacements                    |
-| `HandlebarsHelpers` | Registers custom Handlebars helpers (see Helpers.js for implementations)          |
+| `HandlebarsHelpers` | Registers custom Handlebars helpers and partials                                  |
 
 ### Template File Convention
 
@@ -25,6 +25,7 @@ Templates require **two files** with matching base names:
 mytemplate.hbs                    # Handlebars template
 mytemplate.hbs.settings.json      # Generation settings
 mytemplate.hbs.js                 # (Optional) Script hooks for model preparation
+mypartial.hbs.partial             # (Optional) Reusable partial template
 ```
 
 ### Key Settings Properties
@@ -103,13 +104,15 @@ npm run test:watch    # Run tests in watch mode
 npm run test:coverage # Run tests with coverage report
 npm run generate      # Run sample generation (outputs to ./Generated/)
 npm run lint          # Run ESLint
+npm run format        # Format code with Prettier
+npm run format:check  # Check formatting without changing files
 ```
 
 ## Git Hooks (Husky + lint-staged)
 
 Pre-commit hooks automatically run:
 
-1. **lint-staged**: ESLint with auto-fix on staged JS files
+1. **lint-staged**: Prettier formatting + ESLint with auto-fix on staged JS files
 2. **npm test**: Full test suite
 
 Configuration in `package.json`:
@@ -117,9 +120,56 @@ Configuration in `package.json`:
 ```json
 {
   "lint-staged": {
-    "lib/**/*.js": ["eslint --fix"]
+    "lib/**/*.js": ["prettier --write", "eslint --fix"]
   }
 }
+```
+
+## Handlebars Partials
+
+Partials allow reusable template fragments. Use `.hbs.partial` or `.partial.hbs` extension.
+
+### Automatic Loading
+
+Partials are automatically loaded when using `TemplateLoader`:
+
+```javascript
+const loader = new TemplateLoader(templateDir);
+loader.load(); // Registers partials from directory
+console.log(loader.partials); // ['header', 'itemDetails']
+```
+
+### Using Partials in Templates
+
+```handlebars
+{{!-- Use with parameters --}}
+{{> header title="My Document"}}
+
+{{!-- Use in iteration --}}
+{{#each items}}
+  {{> itemDetails}}
+{{/each}}
+```
+
+### Manual Registration
+
+```javascript
+const { HandlebarsHelpers } = require('generator.handlebars');
+
+// Register from string
+HandlebarsHelpers.registerPartial('myPartial', '<div>{{name}}</div>');
+
+// Register from file
+HandlebarsHelpers.registerPartialFromFile('header', './partials/header.hbs.partial');
+
+// Load all from directory
+const registered = HandlebarsHelpers.loadPartialsFromDirectory('./partials');
+
+// Get all registered partials
+const allPartials = HandlebarsHelpers.getPartials();
+
+// Unregister
+HandlebarsHelpers.unregisterPartial('myPartial');
 ```
 
 ## Async API
@@ -193,7 +243,9 @@ const results = loader.generate(model, { write: false });
 Tests use Jest in `lib/__tests__/`. Run with `npm test`.
 
 - **Helpers.test.js**: Unit tests for all helper functions (71+ tests)
-- **integration.test.js**: End-to-end tests for Template, TemplateLoader, FileHelper
+- **integration.test.js**: End-to-end tests for Template, TemplateLoader, FileHelper, Partials
+- **PluginManager.test.js**: Tests for plugin system
+- **GeneratorError.test.js**: Tests for custom error classes
 - Test files follow `*.test.js` naming convention
 - Uses `mock-fs` for filesystem mocking in integration tests
 
@@ -205,10 +257,50 @@ See `sample-templates/` for working examples:
 - `sample-full-model.hbs` - Single output from full model
 - `sample-full-model-split.hbs` - Split output into multiple files
 - `sample-from-list.hbs` - Alternative target array
+- `header.hbs.partial` - Reusable header partial
+- `itemDetails.hbs.partial` - Reusable item display partial
+
+## Plugin System
+
+Extend the generator with custom helpers, partials, and lifecycle hooks:
+
+```javascript
+const { pluginManager, PluginManager } = require('generator.handlebars');
+
+// Register a plugin
+pluginManager.register({
+  name: 'my-plugin',
+  helpers: { double: (n) => n * 2 },
+  partials: { footer: '© {{year}}' },
+  onBeforeGenerate: (model) => console.log('Starting...'),
+  transformModel: (model) => ({ ...model, extra: true })
+});
+
+// Factory methods for simple plugins
+const plugin = PluginManager.createHelperPlugin('utils', { ... });
+```
 
 ## Error Handling
 
-Classes accumulate non-fatal errors in an `errors` array:
+Custom error classes with detailed context:
+
+```javascript
+const {
+  GeneratorError,
+  TemplateCompileError,
+  FileError,
+  formatErrorSummary,
+} = require('generator.handlebars');
+
+// Errors include context
+err.toDetailedString(); // Includes template, file, line number
+err.toJSON(); // For structured logging
+
+// Format multiple errors
+formatErrorSummary(loader.errors);
+```
+
+Classes also accumulate non-fatal errors in an `errors` array:
 
 ```javascript
 const template = new Template(path);

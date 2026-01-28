@@ -1,0 +1,71 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/dustylau/generator.handlebars/schemas/template-settings.schema.json",
+  "title": "Template Settings",
+  "description": "Configuration for generator.handlebars template generation",
+  "type": "object",
+  "properties": {
+    "Target": {
+      "type": "string",
+      "description": "The model property to iterate over. Use 'Model' for single output from the entire model, or specify a property path like 'Items' to generate one file per item.",
+      "default": "Model",
+      "examples": ["Model", "Items", "Entities", "Tables"]
+    },
+    "TargetItem": {
+      "type": "string",
+      "description": "The variable name to use for the current item in iteration. This name is used in the template to reference each item.",
+      "default": "item",
+      "examples": ["item", "entity", "table", "model"]
+    },
+    "ExportPath": {
+      "type": "string",
+      "description": "Handlebars expression for the output file path. Use double backslashes before Handlebars expressions (e.g., '\\\\{{item.Name}}'). Can include any model properties.",
+      "examples": [
+        ".\\Generated\\{{item.Name}}.cs",
+        ".\\Out\\\\{{item.Name}}.txt",
+        "./output/{{model.ProjectName}}/{{item.FileName}}"
+      ]
+    },
+    "AppendToExisting": {
+      "type": "boolean",
+      "description": "When true, generated content is appended to existing files. When false, existing files are overwritten.",
+      "default": false
+    },
+    "SplitOn": {
+      "type": "string",
+      "description": "A marker string that splits a single template output into multiple files. Content between markers goes to separate files.",
+      "examples": ["//##SPLIT##", "<!-- SPLIT -->", "# --- SPLIT ---"]
+    },
+    "FileNamePattern": {
+      "type": "string",
+      "description": "Regular expression pattern to extract filename from split content. Must include a named capture group 'FileName'.",
+      "examples": [
+        "//\\[(?<FileName>[\\w]+)\\]",
+        "<!-- FileName: (?<FileName>[\\w.-]+) -->",
+        "# File: (?<FileName>.+)$"
+      ]
+    },
+    "RemoveFileName": {
+      "type": "boolean",
+      "description": "When true, the filename marker line is removed from the generated output.",
+      "default": true
+    }
+  },
+  "examples": [
+    {
+      "Target": "Items",
+      "TargetItem": "item",
+      "ExportPath": ".\\Generated\\\\{{item.Name}}.cs",
+      "AppendToExisting": false
+    },
+    {
+      "Target": "Model",
+      "TargetItem": "model",
+      "ExportPath": ".\\Output\\combined.txt",
+      "SplitOn": "//##SPLIT##",
+      "FileNamePattern": "//\\[(?<FileName>[\\w]+)\\]",
+      "RemoveFileName": true
+    }
+  ],
+  "additionalProperties": false
+}
