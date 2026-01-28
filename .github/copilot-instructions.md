@@ -31,15 +31,20 @@ mytemplate.hbs.js                 # (Optional) Script hooks for model preparatio
 
 ```json
 {
-  "Target": "Items", // Model property to iterate (use "Model" for single output)
-  "TargetItem": "item", // Variable name in template for current item
-  "ExportPath": ".\\Out\\{{item.Name}}.txt", // Handlebars expression for output path
+  "Target": "Items",
+  "TargetItem": "item",
+  "ExportPath": ".\\Out\\{{item.Name}}.txt",
   "AppendToExisting": false,
-  "SplitOn": "//##SPLIT##", // Split single template output into multiple files
-  "FileNamePattern": "//\\[(?<FileName>[\\w]+)\\]", // Regex with FileName capture group
+  "SplitOn": "//##SPLIT##",
+  "FileNamePattern": "//\\[(?<FileName>[\\w]+)\\]",
   "RemoveFileName": true
 }
 ```
+
+- `Target`: Model property to iterate (use `"Model"` for single output)
+- `ExportPath`: Handlebars expression for output path
+- `SplitOn`: Split single template output into multiple files
+- `FileNamePattern`: Regex with `FileName` capture group
 
 **Path escaping**: Double-escape backslashes before Handlebars expressions: `\\\\{{var}}`
 
@@ -47,10 +52,10 @@ mytemplate.hbs.js                 # (Optional) Script hooks for model preparatio
 
 Available in templates via `HandlebarsHelpers.js` → `Helpers.js`:
 
-- String: `camelCase`, `upperCase`, `lowerCase`, `replace`, `concat`
-- Conditionals: `ifEquals`, `ifNotEquals`
-- Collections: `where`, `orderBy`, `first`, `any`, `findIn`, `existsIn`
-- Type utilities: `getType`, `isSystemType`, `getSqlType`, `isNumber`, `contains`
+- **String**: `camelCase`, `upperCase`, `lowerCase`, `replace`, `concat`
+- **Conditionals**: `ifEquals`, `ifNotEquals`
+- **Collections**: `where`, `orderBy`, `first`, `any`, `findIn`, `existsIn`, `contains`
+- **Type utilities**: `getType`, `isSystemType`, `getSqlType`, `isNumber`
 
 ### Filter syntax for `where` helper
 
@@ -60,48 +65,51 @@ Available in templates via `HandlebarsHelpers.js` → `Helpers.js`:
 
 ## Script Hooks (Optional .hbs.js files)
 
-Templates can include preparation scripts with these hooks:
-
 ```javascript
 module.exports = {
-  prepareModel: function (model) {
-    return model;
-  },
-  prepareTarget: function (target) {
-    return target;
-  },
-  prepareItem: function (item) {
-    return item;
-  },
-  prepareItemModel: function (itemModel) {
-    return itemModel;
-  },
+  prepareModel: (model) => model,
+  prepareTarget: (target) => target,
+  prepareItem: (item) => item,
+  prepareItemModel: (itemModel) => itemModel,
 };
 ```
 
 ## Development Commands
 
 ```bash
-node generate.js     # Run sample generation (outputs to ./Generated/)
-npm install          # Runs postinstall.js to copy sample-templates
+npm test              # Run Jest test suite
+npm run test:watch    # Run tests in watch mode
+npm run test:coverage # Run tests with coverage report
+npm run generate      # Run sample generation (outputs to ./Generated/)
+npm run lint          # Run ESLint
 ```
 
 ## Code Patterns
 
-- **Properties**: Use getter/setter pattern with `_` prefix for private fields
-- **Exports**: CommonJS modules (`module.exports` / `exports.ClassName`)
-- **Callbacks**: Support callback-based async pattern (not Promises)
-- **File paths**: Handle both `/` and `\` separators, normalize in path construction
+- **Properties**: Getter/setter with `_` prefix for private fields
+- **Exports**: CommonJS (`module.exports` / `exports.ClassName`)
+- **Error handling**: Classes expose `errors` array; throw `Error` for fatal issues
+- **Variables**: Use `const`/`let` (no `var`), arrow functions where appropriate
+- **Documentation**: JSDoc comments on public APIs
 
 ## When Adding New Helpers
 
-1. Implement function in `lib/Helpers.js`
-2. Register with Handlebars in `lib/HandlebarsHelpers.js`:
+1. Implement function in `lib/Helpers.js` with JSDoc comments and input validation
+2. Register in `lib/HandlebarsHelpers.js`:
    ```javascript
    Handlebars.registerHelper('helperName', Helpers.helperName);
    ```
+3. Export from the module's exports object
+4. Add unit tests in `lib/__tests__/Helpers.test.js`
 
-## Sample Templates Reference
+## Testing
+
+Tests use Jest in `lib/__tests__/`. Run with `npm test`.
+
+- All helpers have unit tests covering normal and edge cases
+- Test files follow `*.test.js` naming convention
+
+## Sample Templates
 
 See `sample-templates/` for working examples:
 

@@ -1,10 +1,17 @@
 {
   "name": "generator.handlebars",
-  "version": "2.0.7",
+  "version": "3.0.0",
   "description": "Template code generator based on Handlebars",
   "main": "generator.handlebars.js",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "generate": "node generate.js",
+    "lint": "eslint lib/**/*.js",
     "postinstall": "node ./postinstall.js"
   },
   "repository": {
@@ -13,7 +20,9 @@
   },
   "keywords": [
     "code-generator",
-    "Handlebars"
+    "Handlebars",
+    "template",
+    "scaffolding"
   ],
   "author": "Dusty Lau",
   "license": "ISC",
@@ -22,8 +31,11 @@
   },
   "homepage": "https://github.com/dustylau/generator.handlebars#readme",
   "dependencies": {
-    "gently-copy": "^3.2.0",
-    "handlebars": "^4.7.6"
+    "handlebars": "^4.7.8"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "jest": "^29.7.0",
+    "mock-fs": "^5.2.0"
+  }
 }
