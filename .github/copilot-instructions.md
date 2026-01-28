@@ -74,6 +74,27 @@ module.exports = {
 };
 ```
 
+## CLI Tool
+
+The package includes a CLI for command-line generation:
+
+```bash
+# Generate files
+npx generator-hbs generate -t ./templates -m ./model.json
+
+# Preview without writing (dry-run)
+npx generator-hbs generate -t ./templates -m ./model.json --dry-run
+
+# Validate templates
+npx generator-hbs validate -t ./templates -v
+
+# List templates
+npx generator-hbs list -t ./templates
+
+# Watch mode (auto-regenerate on changes)
+npx generator-hbs watch -t ./templates -m ./model.json
+```
+
 ## Development Commands
 
 ```bash
@@ -82,6 +103,23 @@ npm run test:watch    # Run tests in watch mode
 npm run test:coverage # Run tests with coverage report
 npm run generate      # Run sample generation (outputs to ./Generated/)
 npm run lint          # Run ESLint
+```
+
+## Git Hooks (Husky + lint-staged)
+
+Pre-commit hooks automatically run:
+
+1. **lint-staged**: ESLint with auto-fix on staged JS files
+2. **npm test**: Full test suite
+
+Configuration in `package.json`:
+
+```json
+{
+  "lint-staged": {
+    "lib/**/*.js": ["eslint --fix"]
+  }
+}
 ```
 
 ## Async API

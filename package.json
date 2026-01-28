@@ -3,6 +3,9 @@
   "version": "3.0.0",
   "description": "Template code generator based on Handlebars",
   "main": "generator.handlebars.js",
+  "bin": {
+    "generator-hbs": "./cli.js"
+  },
   "engines": {
     "node": ">=18.0.0"
   },
@@ -12,7 +15,8 @@
     "test:coverage": "jest --coverage",
     "generate": "node generate.js",
     "lint": "eslint lib/**/*.js",
-    "postinstall": "node ./postinstall.js"
+    "postinstall": "node ./postinstall.js",
+    "prepare": "husky"
   },
   "repository": {
     "type": "git",
@@ -31,11 +35,20 @@
   },
   "homepage": "https://github.com/dustylau/generator.handlebars#readme",
   "dependencies": {
+    "chokidar": "^5.0.0",
+    "commander": "^14.0.2",
     "handlebars": "^4.7.8"
   },
   "devDependencies": {
     "eslint": "^8.57.0",
+    "husky": "^9.1.7",
     "jest": "^29.7.0",
+    "lint-staged": "^16.2.7",
     "mock-fs": "^5.2.0"
+  },
+  "lint-staged": {
+    "lib/**/*.js": [
+      "eslint --fix"
+    ]
   }
 }

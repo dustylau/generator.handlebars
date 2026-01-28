@@ -5,16 +5,47 @@ The library is easily installed via npm and provides a set of tools to generate 
 
 ## Installation
 
-```
+```bash
 npm install --save generator.handlebars
 ```
 
-### Test
+## CLI Usage
+
+The package includes a command-line interface for quick generation:
+
+```bash
+# Generate files from templates
+npx generator-hbs generate -t ./templates -m ./model.json
+
+# Preview output without writing files
+npx generator-hbs generate -t ./templates -m ./model.json --dry-run
+
+# Validate templates
+npx generator-hbs validate -t ./templates
+
+# List available templates
+npx generator-hbs list -t ./templates
+
+# Watch mode - regenerate on changes
+npx generator-hbs watch -t ./templates -m ./model.json
 ```
+
+### CLI Commands
+
+| Command | Description |
+|---------|-------------|
+| `generate` | Generate files from templates |
+| `validate` | Validate templates without generating |
+| `preview` | Preview generated output |
+| `list` | List templates in a directory |
+| `watch` | Watch for changes and regenerate |
+
+### Test
+```bash
 node generate.js
 ```
 
-## Usage
+## Programmatic Usage
 ___
 
 ### 1. Include the library
