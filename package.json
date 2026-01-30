@@ -23,6 +23,9 @@
     "format:check": "prettier --check \"lib/**/*.js\" \"*.js\" \"*.json\"",
     "depcheck": "depcheck",
     "validate": "npm run format && npm run lint:all && npm test",
+    "release:check": "node -e \"console.log('Version:', require('./package.json').version)\"",
+    "release:dry-run": "npm pack --dry-run",
+    "branch-protection": "node .github/scripts/setup-branch-protection.js",
     "postinstall": "node ./postinstall.js",
     "prepare": "husky"
   },

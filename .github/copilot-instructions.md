@@ -166,6 +166,47 @@ Configuration files:
 - `.markdownlint.json` - Markdown linting rules
 - `commitlint.config.js` - Conventional commit rules
 - `cspell.json` - Spell checking dictionary
+- `release-please-config.json` - Release automation configuration
+- `.release-please-manifest.json` - Version tracking for release-please
+
+## Release Workflow (GitFlow + release-please)
+
+This project uses automated releases with GitFlow branching:
+
+### Branches
+
+- `main` - Protected, releases happen here via release-please
+- `develop` - Protected, pre-releases (alpha) published automatically
+- `feature/*` - Feature development, merge to develop
+- `release/*` - Release preparation, merge to main
+- `hotfix/*` - Emergency fixes, merge to main and develop
+
+### Automated Versioning
+
+Conventional commits automatically determine version bumps:
+
+- `feat:` → Minor version bump
+- `fix:` → Patch version bump
+- `feat!:` or `BREAKING CHANGE:` → Major version bump
+
+### Release Process
+
+1. Commits to `main` trigger release-please to create/update a Release PR
+2. Merging the Release PR creates a GitHub Release and publishes to npm
+3. Pushes to `develop` publish pre-release versions with `alpha` tag
+
+### npm Tags
+
+- `latest` - Stable releases: `npm install generator.handlebars`
+- `alpha` - Pre-releases from develop: `npm install generator.handlebars@alpha`
+
+### Scripts
+
+- `npm run release:check` - Show current version
+- `npm run release:dry-run` - Preview package contents
+- `npm run branch-protection` - Set up GitHub branch protection (requires GITHUB_TOKEN)
+
+See [docs/RELEASING.md](../docs/RELEASING.md) for complete documentation.
 
 ## IMPORTANT: Pre-Commit Validation
 

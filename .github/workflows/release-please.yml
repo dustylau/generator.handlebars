@@ -1,0 +1,166 @@
+# Release Please Workflow
+# Automates version bumping, changelog generation, and npm publishing
+# Based on conventional commits (feat:, fix:, etc.)
+
+name: Release Please
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+      version: ${{ steps.release.outputs.version }}
+      major: ${{ steps.release.outputs.major }}
+      minor: ${{ steps.release.outputs.minor }}
+      patch: ${{ steps.release.outputs.patch }}
+
+    steps:
+      - name: Run Release Please
+        id: release
+        uses: googleapis/release-please-action@v4
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Output Release Info
+        if: ${{ steps.release.outputs.release_created }}
+        run: |
+          echo "Release created: ${{ steps.release.outputs.release_created }}"
+          echo "Tag: ${{ steps.release.outputs.tag_name }}"
+          echo "Version: ${{ steps.release.outputs.version }}"
+
+  # Publish to npm when a release is created
+  publish-npm:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created }}
+    runs-on: ubuntu-latest
+    environment: npm-publish
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.release-please.outputs.tag_name }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run Tests
+        run: npm test
+
+      - name: Verify Package
+        run: npm pack --dry-run
+
+      - name: Publish to npm
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Notify Success
+        if: success()
+        run: |
+          echo "✅ Successfully published version ${{ needs.release-please.outputs.version }} to npm"
+          echo "📦 Package: https://www.npmjs.com/package/generator.handlebars"
+
+      - name: Notify Failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `🚨 npm publish failed for v${{ needs.release-please.outputs.version }}`,
+              body: `## Publish Failure\n\nThe npm publish step failed for version **${{ needs.release-please.outputs.version }}**.\n\n**Tag:** ${{ needs.release-please.outputs.tag_name }}\n**Run:** ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}\n\n### Required Actions\n1. Check the workflow logs for details\n2. Fix the issue\n3. Manually publish with: \`npm publish --access public\`\n4. Or trigger the rollback workflow if needed`,
+              labels: ['release-failure', 'priority-high']
+            });
+
+  # Create pre-release for develop branch
+  prerelease:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run Tests
+        run: npm test
+
+      - name: Generate Pre-release Version
+        id: prerelease-version
+        run: |
+          # Get current version from package.json
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+
+          # Get short commit hash
+          SHORT_SHA=$(git rev-parse --short HEAD)
+
+          # Count commits since last tag
+          COMMIT_COUNT=$(git rev-list --count HEAD ^$(git describe --tags --abbrev=0 2>/dev/null || echo HEAD~100))
+
+          # Create pre-release version: X.Y.Z-alpha.N+sha
+          PRERELEASE_VERSION="${CURRENT_VERSION}-alpha.${COMMIT_COUNT}+${SHORT_SHA}"
+
+          echo "prerelease_version=${PRERELEASE_VERSION}" >> $GITHUB_OUTPUT
+          echo "Generated pre-release version: ${PRERELEASE_VERSION}"
+
+      - name: Update Package Version for Pre-release
+        run: |
+          npm version ${{ steps.prerelease-version.outputs.prerelease_version }} --no-git-tag-version
+
+      - name: Publish Pre-release to npm
+        run: npm publish --access public --tag alpha
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create Pre-release Tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "v${{ steps.prerelease-version.outputs.prerelease_version }}" -m "Pre-release v${{ steps.prerelease-version.outputs.prerelease_version }}"
+          git push origin "v${{ steps.prerelease-version.outputs.prerelease_version }}"
+
+      - name: Create GitHub Pre-release
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.repos.createRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: `v${{ steps.prerelease-version.outputs.prerelease_version }}`,
+              name: `Pre-release v${{ steps.prerelease-version.outputs.prerelease_version }}`,
+              body: `## Development Pre-release\n\nThis is an automated pre-release from the \`develop\` branch.\n\n**⚠️ This version is for testing purposes only.**\n\n### Install\n\`\`\`bash\nnpm install generator.handlebars@alpha\n\`\`\`\n\n### Commit: ${context.sha.substring(0, 7)}`,
+              prerelease: true,
+              draft: false
+            });

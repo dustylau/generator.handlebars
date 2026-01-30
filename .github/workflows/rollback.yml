@@ -1,0 +1,216 @@
+# Rollback Workflow
+# Manually triggered workflow to rollback a failed release
+
+name: Rollback Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to rollback (e.g., 3.0.1)'
+        required: true
+        type: string
+      rollback_to:
+        description: 'Version to rollback to (e.g., 3.0.0)'
+        required: true
+        type: string
+      rollback_npm:
+        description: 'Deprecate npm package version'
+        required: true
+        type: boolean
+        default: true
+      rollback_github:
+        description: 'Delete GitHub release and tag'
+        required: true
+        type: boolean
+        default: true
+      reason:
+        description: 'Reason for rollback'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    name: Validate Rollback
+    runs-on: ubuntu-latest
+    outputs:
+      proceed: ${{ steps.validate.outputs.proceed }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate Versions
+        id: validate
+        run: |
+          echo "🔍 Validating rollback request..."
+          echo ""
+          echo "Version to rollback: v${{ inputs.version }}"
+          echo "Rollback to: v${{ inputs.rollback_to }}"
+          echo "Reason: ${{ inputs.reason }}"
+          echo ""
+          
+          # Check if the target version tag exists
+          if git rev-parse "v${{ inputs.rollback_to }}" >/dev/null 2>&1; then
+            echo "✓ Target version v${{ inputs.rollback_to }} exists"
+          else
+            echo "✗ Target version v${{ inputs.rollback_to }} does not exist"
+            exit 1
+          fi
+          
+          # Check if the version to rollback exists
+          if git rev-parse "v${{ inputs.version }}" >/dev/null 2>&1; then
+            echo "✓ Version v${{ inputs.version }} exists"
+          else
+            echo "⚠ Version v${{ inputs.version }} tag not found (may have already been deleted)"
+          fi
+          
+          echo "proceed=true" >> $GITHUB_OUTPUT
+
+  rollback-npm:
+    name: Rollback npm Package
+    needs: validate
+    if: ${{ needs.validate.outputs.proceed == 'true' && inputs.rollback_npm }}
+    runs-on: ubuntu-latest
+    environment: npm-publish
+
+    steps:
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Deprecate npm Version
+        run: |
+          echo "📦 Deprecating npm package version ${{ inputs.version }}..."
+          npm deprecate generator.handlebars@${{ inputs.version }} \
+            "This version has been deprecated. Please use ${{ inputs.rollback_to }} instead. Reason: ${{ inputs.reason }}"
+          echo "✓ npm version deprecated"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Update dist-tag
+        run: |
+          echo "🏷️ Updating latest tag to point to ${{ inputs.rollback_to }}..."
+          npm dist-tag add generator.handlebars@${{ inputs.rollback_to }} latest
+          echo "✓ dist-tag updated"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  rollback-github:
+    name: Rollback GitHub Release
+    needs: validate
+    if: ${{ needs.validate.outputs.proceed == 'true' && inputs.rollback_github }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Delete GitHub Release
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const version = '${{ inputs.version }}';
+            const tagName = `v${version}`;
+            
+            console.log(`🗑️ Looking for release with tag ${tagName}...`);
+            
+            try {
+              // Find the release
+              const { data: releases } = await github.rest.repos.listReleases({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+              });
+              
+              const release = releases.find(r => r.tag_name === tagName);
+              
+              if (release) {
+                // Delete the release
+                await github.rest.repos.deleteRelease({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  release_id: release.id,
+                });
+                console.log(`✓ Deleted GitHub release ${tagName}`);
+              } else {
+                console.log(`⚠ No release found for ${tagName}`);
+              }
+            } catch (error) {
+              console.log(`⚠ Could not delete release: ${error.message}`);
+            }
+
+      - name: Delete Git Tag
+        run: |
+          echo "🏷️ Deleting tag v${{ inputs.version }}..."
+          git push --delete origin "v${{ inputs.version }}" || echo "⚠ Tag may already be deleted"
+          echo "✓ Tag deleted (or was already deleted)"
+
+  create-rollback-issue:
+    name: Create Rollback Record
+    needs: [rollback-npm, rollback-github]
+    if: always() && needs.validate.outputs.proceed == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Create Rollback Issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const npmStatus = '${{ needs.rollback-npm.result }}';
+            const githubStatus = '${{ needs.rollback-github.result }}';
+            
+            const statusEmoji = (status) => {
+              switch(status) {
+                case 'success': return '✅';
+                case 'failure': return '❌';
+                case 'skipped': return '⏭️';
+                default: return '❓';
+              }
+            };
+            
+            const body = `## Rollback Record
+
+**Date:** ${new Date().toISOString()}
+**Initiated by:** @${context.actor}
+**Run:** ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}
+
+### Versions
+| From | To |
+|------|-----|
+| v${{ inputs.version }} | v${{ inputs.rollback_to }} |
+
+### Reason
+${{ inputs.reason }}
+
+### Status
+| Action | Status |
+|--------|--------|
+| npm deprecation | ${statusEmoji(npmStatus)} ${npmStatus} |
+| GitHub release deletion | ${statusEmoji(githubStatus)} ${githubStatus} |
+
+### Next Steps
+${npmStatus === 'failure' || githubStatus === 'failure' ? `
+- [ ] Investigate failed rollback steps
+- [ ] Manually complete any failed operations
+` : ''}
+- [ ] Communicate rollback to users if necessary
+- [ ] Create fix PR for the issue that caused the rollback
+- [ ] Close this issue when resolved
+`;
+            
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `🔄 Rollback: v${{ inputs.version }} → v${{ inputs.rollback_to }}`,
+              body: body,
+              labels: ['rollback', 'release']
+            });

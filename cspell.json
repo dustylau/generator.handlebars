@@ -29,8 +29,25 @@
     "minify",
     "dedupe",
     "kebab",
-    "unescape"
+    "unescape",
+    "gitflow",
+    "ruleset",
+    "rulesets",
+    "prerelease",
+    "rollback",
+    "changelog",
+    "generatorrc",
+    "mytemplate",
+    "startswith",
+    "endswith",
+    "nvarchar",
+    "smallint",
+    "varbinary",
+    "tinyint",
+    "aeiou",
+    "informations"
   ],
+  "flagWords": ["overriden", "interate", "recieves", "handldebars"],
   "ignorePaths": [
     "node_modules/**",
     "package-lock.json",
@@ -38,5 +55,5 @@
     "coverage/**",
     "*.min.js"
   ],
-  "ignoreRegExpList": ["\\{\\{.*?\\}\\}"]
+  "ignoreRegExpList": ["\\{\\{.*?\\}\\}", "\\b[a-z]{6}\\b"]
 }
