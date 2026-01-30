@@ -12,6 +12,16 @@ declare namespace GeneratorHandlebars {
   // Template
   // ============================================================================
 
+  interface SkippedItem {
+    item: any;
+    reason: string;
+  }
+
+  interface GenerateResult {
+    skipped: boolean;
+    reason?: string;
+  }
+
   /**
    * Represents a Handlebars template with settings and generation capabilities.
    */
@@ -33,6 +43,9 @@ declare namespace GeneratorHandlebars {
     /** Array of errors encountered during processing */
     errors: string[];
 
+    /** Array of items skipped during generation */
+    readonly skippedItems: SkippedItem[];
+
     /** Template settings */
     readonly settings: TemplateSettings;
 
@@ -45,9 +58,14 @@ declare namespace GeneratorHandlebars {
     /**
      * Generates output from the template using the provided model.
      * @param model - The data model
-     * @returns Array of generated results
+     * @returns Skip info if template was skipped, void otherwise
      */
-    generate(model: any): TemplateResult[];
+    generate(model: any): GenerateResult | void;
+
+    /**
+     * Gets the generated results.
+     */
+    readonly result: TemplateResult[];
 
     /**
      * Writes generated results to files.
@@ -201,11 +219,24 @@ declare namespace GeneratorHandlebars {
   interface TemplateSettingsJson {
     Target?: string;
     TargetItem?: string;
+    TargetProperty?: string;
+    ModelProperty?: string;
+    TargetItemNameProperty?: string;
     ExportPath?: string;
+    PrepareExportPathUsingTemplate?: boolean;
+    PrepareExportPathUsingReplace?: boolean;
     AppendToExisting?: boolean;
     SplitOn?: string;
     FileNamePattern?: string;
     RemoveFileName?: boolean;
+    /** Condition expression for when to generate */
+    GenerateIf?: string;
+    /** Condition expression for when to skip */
+    SkipIf?: string;
+    /** Whether this template is enabled */
+    Enabled?: boolean;
+    /** Description of what this template generates */
+    Description?: string;
   }
 
   /**
@@ -214,26 +245,84 @@ declare namespace GeneratorHandlebars {
   class TemplateSettings {
     constructor(json: TemplateSettingsJson);
 
+    static DefaultTarget: string;
+    static DefaultTargetItem: string;
+    static DefaultTargetProperty: string;
+    static DefaultModelProperty: string;
+    static DefaultTargetItemNameProperty: string;
+    static DefaultPrepareExportPathUsingTemplate: boolean;
+    static DefaultPrepareExportPathUsingReplace: boolean;
+
     /** Model property to iterate */
-    target: string;
+    readonly target: string;
 
     /** Variable name for current item */
-    targetItem: string;
+    readonly targetItem: string;
+
+    /** Property name for target in item model */
+    readonly targetProperty: string;
+
+    /** Property name for model in item model */
+    readonly modelProperty: string;
+
+    /** Property name for item name */
+    readonly targetItemNameProperty: string;
 
     /** Output path template */
-    exportPath: string;
+    readonly exportPath: string | null;
+
+    /** Use template for export path */
+    readonly prepareExportPathUsingTemplate: boolean;
+
+    /** Use replace for export path */
+    readonly prepareExportPathUsingReplace: boolean;
 
     /** Append to existing files */
-    appendToExisting: boolean;
+    readonly appendToExisting: boolean;
 
     /** Split marker */
-    splitOn: string;
+    readonly splitOn: string | null;
 
     /** Filename extraction pattern */
-    fileNamePattern: string;
+    readonly fileNamePattern: string | null;
 
     /** Remove filename marker from output */
-    removeFileName: boolean;
+    readonly removeFileName: boolean;
+
+    /** Condition expression for when to generate */
+    readonly generateIf: string | null;
+
+    /** Condition expression for when to skip */
+    readonly skipIf: string | null;
+
+    /** Whether this template is enabled */
+    readonly enabled: boolean;
+
+    /** Description of what this template generates */
+    readonly description: string | null;
+
+    /**
+     * Evaluates a condition expression against a context.
+     * @param expression - The condition expression
+     * @param context - The context object
+     * @returns True if condition is met
+     */
+    static evaluateCondition(expression: string | null, context: object): boolean;
+
+    /**
+     * Gets a value from an object using dot-notation path.
+     * @param obj - The object to traverse
+     * @param path - The dot-notation path
+     * @returns The value at the path
+     */
+    static getValueByPath(obj: object, path: string): any;
+
+    /**
+     * Checks if this template should generate based on conditions.
+     * @param context - The context containing Model and item
+     * @returns True if should generate
+     */
+    shouldGenerate(context: object): boolean;
 
     /**
      * Loads settings from file.
@@ -266,6 +355,16 @@ declare namespace GeneratorHandlebars {
    * Collection of helper functions.
    */
   namespace Helpers {
+    // Conditional helpers
+    function ifEquals(a: any, b: any, options: Handlebars.HelperOptions): string;
+    function ifNotEquals(a: any, b: any, options: Handlebars.HelperOptions): string;
+    function compare(
+      a: any,
+      operator: string,
+      b: any,
+      options?: Handlebars.HelperOptions
+    ): string | boolean;
+
     // String helpers
     function camelCase(str: string): string;
     function upperCase(str: string): string;
@@ -273,19 +372,23 @@ declare namespace GeneratorHandlebars {
     function isLowerCase(str: string): boolean;
     function replace(str: string, find: string, replacement: string): string;
     function concat(a: any, b: any): string;
-
-    // Conditional helpers (for Handlebars context)
-    function ifEquals(a: any, b: any, options: Handlebars.HelperOptions): string;
-    function ifNotEquals(a: any, b: any, options: Handlebars.HelperOptions): string;
-
-    // Collection helpers
-    function existsIn<T>(collection: T[], property: string, value: any): boolean;
-    function findIn<T>(collection: T[], property: string, value: any): T | undefined;
-    function where<T>(collection: T[], filter: string): T[];
-    function first<T>(collection: T[], filter: string): T | null;
-    function any<T>(collection: T[], filter: string): boolean;
-    function orderBy<T>(collection: T[], orderBy: string): T[];
-    function contains<T>(collection: T[], value: T): boolean;
+    function pluralize(str: string, count?: number): string;
+    function singularize(str: string): string;
+    function kebabCase(str: string): string;
+    function snakeCase(str: string): string;
+    function pascalCase(str: string): string;
+    function capitalize(str: string): string;
+    function truncate(str: string, length: number, suffix?: string): string;
+    function pad(
+      str: string,
+      length: number,
+      char?: string,
+      direction?: 'left' | 'right' | 'both'
+    ): string;
+    function trim(str: string): string;
+    function repeat(str: string, count: number): string;
+    function startsWith(str: string, prefix: string): boolean;
+    function endsWith(str: string, suffix: string): boolean;
 
     // Type helpers
     function isEmpty(value: any): boolean;
@@ -295,6 +398,40 @@ declare namespace GeneratorHandlebars {
     function getType(property: any): string;
     function getSqlType(property: any): string;
     function getSystemType(type: string): string;
+
+    // Collection helpers
+    function existsIn<T>(collection: T[], property: string, value: any): boolean;
+    function findIn<T>(collection: T[], property: string, value: any): T | undefined;
+    function where<T>(collection: T[], filter: string): T[];
+    function first<T>(collection: T[], filter?: string): T | null;
+    function last<T>(collection: T[]): T | null;
+    function any<T>(collection: T[], filter?: string): boolean;
+    function orderBy<T>(collection: T[], orderBy: string): T[];
+    function contains<T>(collection: T[], value: T): boolean;
+    function join(array: any[], separator?: string): string;
+    function split(str: string, separator?: string): string[];
+    function unique<T>(array: T[], property?: string): T[];
+    function groupBy<T>(array: T[], property: string): { [key: string]: T[] };
+    function count<T>(array: T[], filter?: string): number;
+    function length(value: string | any[]): number;
+    function slice<T>(value: T[] | string, start: number, end?: number): T[] | string;
+    function reverse<T>(value: T[] | string): T[] | string;
+
+    // Date helpers
+    function formatDate(value: Date | string | number, format?: string): string;
+    function now(format?: string): string;
+
+    // Utility helpers
+    function defaultValue<T>(value: T | null | undefined, defaultVal: T): T;
+    function coalesce<T>(...args: (T | null | undefined)[]): T | null;
+    function math(
+      a: number,
+      op: 'add' | 'sub' | 'mul' | 'div' | 'mod' | '+' | '-' | '*' | '/' | '%',
+      b: number
+    ): number;
+    function toJson(value: any, indent?: number): string;
+    function env(name: string, defaultValue?: string): string;
+    function debug(value: any, label?: string): string;
   }
 
   // ============================================================================
@@ -450,6 +587,123 @@ declare namespace GeneratorHandlebars {
 
   /** Singleton plugin manager instance */
   const pluginManager: PluginManager;
+
+  // ============================================================================
+  // ConfigLoader
+  // ============================================================================
+
+  /**
+   * Configuration options for generator.
+   */
+  interface GeneratorConfig {
+    /** Template directory path */
+    templateDirectory?: string;
+    /** Output directory path */
+    outputDirectory?: string;
+    /** Model file path */
+    modelPath?: string | null;
+    /** Template file extension */
+    extension?: string;
+    /** Recurse into subdirectories */
+    recurse?: boolean;
+    /** Enable verbose output */
+    verbose?: boolean;
+    /** Dry run mode (no file writes) */
+    dryRun?: boolean;
+    /** Continue on error */
+    continueOnError?: boolean;
+    /** Watch mode */
+    watch?: boolean;
+    /** Watch debounce delay in ms */
+    watchDebounce?: number;
+    /** Custom helpers to register */
+    helpers?: { [name: string]: Function };
+    /** Custom partials to register */
+    partials?: { [name: string]: string };
+    /** Plugin names or paths to load */
+    plugins?: string[];
+    /** Environment variables */
+    environment?: { [name: string]: string };
+  }
+
+  /**
+   * CLI options that can be applied to config.
+   */
+  interface CliOptions {
+    templates?: string;
+    model?: string;
+    output?: string;
+    verbose?: boolean;
+    dryRun?: boolean;
+    watch?: boolean;
+  }
+
+  /**
+   * Configuration loader and manager.
+   */
+  class ConfigLoader {
+    constructor(basePath?: string);
+
+    /** Base path for config file search */
+    readonly basePath: string;
+
+    /** Loaded configuration */
+    readonly config: GeneratorConfig;
+
+    /** Path to loaded config file */
+    readonly configPath: string | null;
+
+    /** Whether a config file was loaded */
+    readonly isLoaded: boolean;
+
+    /**
+     * Finds a configuration file.
+     * @param searchParents - Whether to search parent directories
+     */
+    findConfigFile(searchParents?: boolean): string | null;
+
+    /**
+     * Loads configuration from file or uses defaults.
+     * @param configPath - Explicit path to config file
+     */
+    load(configPath?: string | null): GeneratorConfig;
+
+    /**
+     * Applies CLI options as overrides.
+     */
+    applyCliOptions(cliOptions: CliOptions): GeneratorConfig;
+
+    /**
+     * Gets a config value by dot-notation path.
+     */
+    get<T = any>(keyPath: string, defaultValue?: T): T;
+
+    /**
+     * Sets a config value by dot-notation path.
+     */
+    set(keyPath: string, value: any): void;
+
+    /**
+     * Resolves a path relative to config file location.
+     */
+    resolvePath(relativePath: string): string;
+
+    /**
+     * Creates a default configuration file.
+     */
+    static createConfigFile(filePath?: string, config?: GeneratorConfig | null): string;
+
+    /**
+     * Gets default configuration.
+     */
+    static getDefaults(): GeneratorConfig;
+  }
+
+  /** Default configuration values */
+  const DEFAULT_CONFIG: GeneratorConfig;
+
+  /** Configuration file names to search for */
+  const CONFIG_FILE_NAMES: string[];
 
   // ============================================================================
   // File Utilities

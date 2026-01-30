@@ -12,6 +12,8 @@ const { Replacement } = require('./lib/Replacement');
 const { Replacements } = require('./lib/Replacements');
 const { TemplateBuilder } = require('./lib/TemplateBuilder');
 const { PluginManager, pluginManager } = require('./lib/PluginManager');
+const { ConfigLoader, DEFAULT_CONFIG, CONFIG_FILE_NAMES } = require('./lib/ConfigLoader');
+const { GenerationStats } = require('./lib/GenerationStats');
 const {
   GeneratorError,
   TemplateLoadError,
@@ -38,6 +40,12 @@ module.exports = {
   TemplateBuilder,
   PluginManager,
   pluginManager,
+  // Configuration
+  ConfigLoader,
+  DEFAULT_CONFIG,
+  CONFIG_FILE_NAMES,
+  // Statistics
+  GenerationStats,
   // Error classes
   GeneratorError,
   TemplateLoadError,

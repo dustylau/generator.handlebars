@@ -16,6 +16,10 @@ A Handlebars-based code generation library that transforms JSON models into text
 | `TemplateResult`    | Holds generated content and writes to filesystem                                  |
 | `TemplateBuilder`   | Creates templates from multiple source files with replacements                    |
 | `HandlebarsHelpers` | Registers custom Handlebars helpers and partials                                  |
+| `ConfigLoader`      | Loads `.generatorrc.json` configuration files                                     |
+| `GenerationStats`   | Tracks generation statistics and timing                                           |
+| `PluginManager`     | Manages plugins with custom helpers, partials, and lifecycle hooks                |
+| `GeneratorError`    | Custom error classes with detailed context                                        |
 
 ### Template File Convention
 
@@ -38,7 +42,11 @@ mypartial.hbs.partial             # (Optional) Reusable partial template
   "AppendToExisting": false,
   "SplitOn": "//##SPLIT##",
   "FileNamePattern": "//\\[(?<FileName>[\\w]+)\\]",
-  "RemoveFileName": true
+  "RemoveFileName": true,
+  "GenerateIf": "Model.type eq entity",
+  "SkipIf": "item.IsAbstract eq true",
+  "Enabled": true,
+  "Description": "Generates entity classes"
 }
 ```
 
@@ -46,17 +54,41 @@ mypartial.hbs.partial             # (Optional) Reusable partial template
 - `ExportPath`: Handlebars expression for output path
 - `SplitOn`: Split single template output into multiple files
 - `FileNamePattern`: Regex with `FileName` capture group
+- `GenerateIf`: Condition that must be true to generate
+- `SkipIf`: Condition that skips generation if true
+- `Enabled`: Enable/disable template (default: true)
 
 **Path escaping**: Double-escape backslashes before Handlebars expressions: `\\\\{{var}}`
+
+### Conditional Generation
+
+Use condition expressions in `GenerateIf` and `SkipIf`:
+
+```
+path operator value
+```
+
+**Operators**: `eq`, `ne`, `gt`, `lt`, `gte`, `lte`, `contains`, `startswith`, `endswith`, `matches`, `exists`, `empty`
+
+**Environment variables**: Use `env:VAR_NAME` prefix
+
+```json
+{
+  "GenerateIf": "env:GENERATE_MODELS",
+  "SkipIf": "item.IsAbstract eq true"
+}
+```
 
 ## Custom Handlebars Helpers
 
 Available in templates via `HandlebarsHelpers.js` → `Helpers.js`:
 
-- **String**: `camelCase`, `upperCase`, `lowerCase`, `replace`, `concat`
-- **Conditionals**: `ifEquals`, `ifNotEquals`
-- **Collections**: `where`, `orderBy`, `first`, `any`, `findIn`, `existsIn`, `contains`
+- **String**: `camelCase`, `upperCase`, `lowerCase`, `replace`, `concat`, `pluralize`, `singularize`, `kebabCase`, `snakeCase`, `pascalCase`, `capitalize`, `truncate`, `pad`, `trim`, `repeat`, `startsWith`, `endsWith`
+- **Conditionals**: `ifEquals`, `ifNotEquals`, `compare`
+- **Collections**: `where`, `orderBy`, `first`, `last`, `any`, `findIn`, `existsIn`, `contains`, `join`, `split`, `unique`, `groupBy`, `count`, `length`, `slice`, `reverse`
 - **Type utilities**: `getType`, `isSystemType`, `getSqlType`, `isNumber`
+- **Date**: `formatDate`, `now`
+- **Utility**: `defaultValue`, `coalesce`, `math`, `toJson`, `env`, `debug`
 
 ### Filter syntax for `where` helper
 
@@ -242,10 +274,13 @@ const results = loader.generate(model, { write: false });
 
 Tests use Jest in `lib/__tests__/`. Run with `npm test`.
 
-- **Helpers.test.js**: Unit tests for all helper functions (71+ tests)
+- **Helpers.test.js**: Unit tests for all helper functions (180+ tests)
 - **integration.test.js**: End-to-end tests for Template, TemplateLoader, FileHelper, Partials
 - **PluginManager.test.js**: Tests for plugin system
 - **GeneratorError.test.js**: Tests for custom error classes
+- **ConfigLoader.test.js**: Tests for configuration loading
+- **GenerationStats.test.js**: Tests for generation statistics
+- **TemplateSettings.test.js**: Tests for conditional generation
 - Test files follow `*.test.js` naming convention
 - Uses `mock-fs` for filesystem mocking in integration tests
 

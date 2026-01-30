@@ -17,6 +17,21 @@
       "default": "item",
       "examples": ["item", "entity", "table", "model"]
     },
+    "TargetProperty": {
+      "type": "string",
+      "description": "The property name used to access the target collection in the item model context.",
+      "default": "target"
+    },
+    "ModelProperty": {
+      "type": "string",
+      "description": "The property name used to access the full model in the item model context.",
+      "default": "model"
+    },
+    "TargetItemNameProperty": {
+      "type": "string",
+      "description": "The property name on each item that contains the item's name (used for default file naming).",
+      "default": "Name"
+    },
     "ExportPath": {
       "type": "string",
       "description": "Handlebars expression for the output file path. Use double backslashes before Handlebars expressions (e.g., '\\\\{{item.Name}}'). Can include any model properties.",
@@ -25,6 +40,16 @@
         ".\\Out\\\\{{item.Name}}.txt",
         "./output/{{model.ProjectName}}/{{item.FileName}}"
       ]
+    },
+    "PrepareExportPathUsingTemplate": {
+      "type": "boolean",
+      "description": "When true, the ExportPath is processed as a Handlebars template.",
+      "default": true
+    },
+    "PrepareExportPathUsingReplace": {
+      "type": "boolean",
+      "description": "When true, the ExportPath uses simple string replacement instead of Handlebars.",
+      "default": false
     },
     "AppendToExisting": {
       "type": "boolean",
@@ -48,7 +73,37 @@
     "RemoveFileName": {
       "type": "boolean",
       "description": "When true, the filename marker line is removed from the generated output.",
+      "default": false
+    },
+    "GenerateIf": {
+      "type": "string",
+      "description": "Condition expression that must evaluate to true for the template to generate. Format: 'path operator value'. Supports operators: eq, ne, gt, lt, gte, lte, contains, startswith, endswith, matches, exists, empty. Use 'env:VAR_NAME' to check environment variables.",
+      "examples": [
+        "Model.type eq entity",
+        "item.IsActive eq true",
+        "Model.count gt 0",
+        "item.Name startswith User",
+        "env:GENERATE_MODELS"
+      ]
+    },
+    "SkipIf": {
+      "type": "string",
+      "description": "Condition expression that skips generation when it evaluates to true. Uses the same format as GenerateIf. Useful for excluding specific items from generation.",
+      "examples": ["item.IsAbstract eq true", "item.Name endswith Base", "env:SKIP_GENERATION"]
+    },
+    "Enabled": {
+      "type": "boolean",
+      "description": "When false, the template is completely disabled and will not generate any output.",
       "default": true
+    },
+    "Description": {
+      "type": "string",
+      "description": "Human-readable description of what this template generates. Used for documentation and CLI output.",
+      "examples": [
+        "Generates C# entity classes",
+        "Creates API controller files",
+        "Builds TypeScript interfaces from model"
+      ]
     }
   },
   "examples": [
@@ -65,6 +120,14 @@
       "SplitOn": "//##SPLIT##",
       "FileNamePattern": "//\\[(?<FileName>[\\w]+)\\]",
       "RemoveFileName": true
+    },
+    {
+      "Target": "Entities",
+      "TargetItem": "entity",
+      "ExportPath": "./models/{{entity.Name}}.ts",
+      "GenerateIf": "Model.generateEntities eq true",
+      "SkipIf": "entity.IsAbstract eq true",
+      "Description": "Generates TypeScript entity classes"
     }
   ],
   "additionalProperties": false
