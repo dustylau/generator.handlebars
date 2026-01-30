@@ -1,6 +1,6 @@
 {
   "name": "generator.handlebars",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "description": "Template code generator based on Handlebars",
   "main": "generator.handlebars.js",
   "types": "index.d.ts",
