@@ -5,12 +5,50 @@
     "es2021": true,
     "jest": true
   },
-  "extends": ["eslint:recommended", "prettier"],
+  "extends": [
+    "eslint:recommended",
+    "plugin:n/recommended",
+    "plugin:import/recommended",
+    "plugin:security/recommended-legacy",
+    "plugin:jsdoc/recommended",
+    "prettier"
+  ],
+  "plugins": ["n", "import", "security", "jsdoc"],
   "parserOptions": {
     "ecmaVersion": "latest"
   },
   "rules": {
     "no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
-    "no-console": "off"
+    "no-console": "off",
+    "n/no-missing-require": "off",
+    "n/no-unpublished-require": "off",
+    "n/no-unsupported-features/es-syntax": "off",
+    "n/no-process-exit": "off",
+    "n/hashbang": "off",
+    "import/no-unresolved": "off",
+    "jsdoc/require-jsdoc": "off",
+    "jsdoc/require-param-description": "off",
+    "jsdoc/require-returns-description": "off",
+    "jsdoc/require-property-description": "off",
+    "jsdoc/require-returns": "off",
+    "jsdoc/require-param": "off",
+    "jsdoc/no-defaults": "off",
+    "jsdoc/tag-lines": "off",
+    "jsdoc/check-types": "off",
+    "jsdoc/valid-types": "off",
+    "jsdoc/no-undefined-types": "off",
+    "jsdoc/check-param-names": "off",
+    "jsdoc/reject-any-type": "off",
+    "jsdoc/reject-function-type": "off",
+    "jsdoc/require-returns-check": "off",
+    "security/detect-object-injection": "off",
+    "security/detect-non-literal-fs-filename": "off",
+    "security/detect-non-literal-require": "off",
+    "security/detect-non-literal-regexp": "off"
+  },
+  "settings": {
+    "jsdoc": {
+      "mode": "jsdoc"
+    }
   }
 }

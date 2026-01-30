@@ -1,6 +1,3 @@
-const fs = require('fs');
-const Handlebars = require('handlebars');
-
 // Support both local development and installed package
 let Generator;
 try {
@@ -101,7 +98,7 @@ var loader = new Generator.TemplateLoader('./sample-templates');
 loader.load();
 
 // Generate the loaded templates.
-loader.generate(model, (loader) => {
+loader.generate(model, (_loader) => {
   console.log('Templates Generated.');
 });
 

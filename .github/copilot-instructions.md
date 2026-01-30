@@ -135,27 +135,68 @@ npm test              # Run Jest test suite
 npm run test:watch    # Run tests in watch mode
 npm run test:coverage # Run tests with coverage report
 npm run generate      # Run sample generation (outputs to ./Generated/)
-npm run lint          # Run ESLint
+npm run lint          # Run ESLint on JS files
+npm run lint:md       # Run markdownlint on MD files
+npm run lint:spell    # Run cspell spell checker
+npm run lint:all      # Run all linters (ESLint + markdownlint + cspell)
 npm run format        # Format code with Prettier
 npm run format:check  # Check formatting without changing files
+npm run depcheck      # Check for unused dependencies
+npm run validate      # Full validation: format + lint:all + test
 ```
 
-## Git Hooks (Husky + lint-staged)
+## Git Hooks (Husky + lint-staged + commitlint)
 
-Pre-commit hooks automatically run:
+**Pre-commit hooks** automatically run:
 
-1. **lint-staged**: Prettier formatting + ESLint with auto-fix on staged JS files
+1. **lint-staged**: Prettier formatting + ESLint with auto-fix on staged files
 2. **npm test**: Full test suite
 
-Configuration in `package.json`:
+**Commit-msg hook** enforces conventional commits via commitlint:
 
-```json
-{
-  "lint-staged": {
-    "lib/**/*.js": ["prettier --write", "eslint --fix"]
-  }
-}
 ```
+type(scope): subject
+
+Types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert
+```
+
+Configuration files:
+
+- `.eslintrc.json` - ESLint with plugins (jsdoc, import, security, n)
+- `.markdownlint.json` - Markdown linting rules
+- `commitlint.config.js` - Conventional commit rules
+- `cspell.json` - Spell checking dictionary
+
+## IMPORTANT: Pre-Commit Validation
+
+**Before considering any code changes complete, ALWAYS run:**
+
+```bash
+npm run validate
+```
+
+Or individually:
+
+```bash
+npm run format && npm run lint && npm test
+```
+
+This is MANDATORY because:
+
+- Pre-commit hooks will reject commits with ESLint errors
+- Commit messages must follow conventional commit format
+- Common issues: unused variables, missing imports, formatting
+- Tests must pass for the commit to succeed
+
+**Checklist before marking work done:**
+
+1. ✅ Run `npm run format` - apply Prettier formatting
+2. ✅ Run `npm run lint` - fix any ESLint errors
+3. ✅ Run `npm test` - ensure all tests pass
+4. ✅ Review for unused variables (especially in test files)
+5. ✅ Verify no `const x = ...` where `x` is never read
+
+````
 
 ## Handlebars Partials
 
@@ -169,7 +210,7 @@ Partials are automatically loaded when using `TemplateLoader`:
 const loader = new TemplateLoader(templateDir);
 loader.load(); // Registers partials from directory
 console.log(loader.partials); // ['header', 'itemDetails']
-```
+````
 
 ### Using Partials in Templates
 
@@ -264,9 +305,11 @@ const results = loader.generate(model, { write: false });
 
 1. Implement function in `lib/Helpers.js` with JSDoc comments and input validation
 2. Register in `lib/HandlebarsHelpers.js`:
+
    ```javascript
    Handlebars.registerHelper('helperName', Helpers.helperName);
    ```
+
 3. Export from the module's exports object
 4. Add unit tests in `lib/__tests__/Helpers.test.js`
 

@@ -1,0 +1,42 @@
+{
+  "version": "0.2",
+  "language": "en",
+  "words": [
+    "handlebars",
+    "hbs",
+    "templating",
+    "commonjs",
+    "camelcase",
+    "jsdoc",
+    "commitlint",
+    "markdownlint",
+    "cspell",
+    "depcheck",
+    "npx",
+    "husky",
+    "precommit",
+    "eslint",
+    "prettier",
+    "lodash",
+    "pluralize",
+    "singularize",
+    "truthy",
+    "falsy",
+    "iteratee",
+    "regex",
+    "lifecycle",
+    "transpile",
+    "minify",
+    "dedupe",
+    "kebab",
+    "unescape"
+  ],
+  "ignorePaths": [
+    "node_modules/**",
+    "package-lock.json",
+    "Generated/**",
+    "coverage/**",
+    "*.min.js"
+  ],
+  "ignoreRegExpList": ["\\{\\{.*?\\}\\}"]
+}
