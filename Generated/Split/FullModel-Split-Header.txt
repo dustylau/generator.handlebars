@@ -1,5 +1,0 @@
-This sample template is generated once with the supplied model.
-The files will be split using the split markers.
-The file name will be pulled from the name tag.
-
-See the (.bhs.settings.json) for the details.

@@ -1,5 +1,0 @@
-Item Name: ItemA
-      Description: Item - A
-      Options:
-          Id: A  Description: Option A
-          Id: B  Description: Option B

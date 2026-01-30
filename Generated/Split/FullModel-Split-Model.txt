@@ -1,2 +1,0 @@
-You have access to the entire model:
-  Description: Test Model
