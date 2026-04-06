@@ -1,7 +1,32 @@
 # generator.handlebars
-The Generator.Handlebars NPM package provides a template code generation library based on the Handlebars template engine.
-The library is easily installed via npm and provides a set of tools to generate any text-based asset from a JSON datasource.
 
+[![npm version](https://img.shields.io/npm/v/generator.handlebars.svg)](https://www.npmjs.com/package/generator.handlebars)
+[![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](https://opensource.org/licenses/ISC)
+[![CI](https://github.com/dustylau/generator.handlebars/actions/workflows/ci.yml/badge.svg)](https://github.com/dustylau/generator.handlebars/actions/workflows/ci.yml)
+
+A template-based code generation library for Node.js that transforms **JSON data models** into any text-based files using **Handlebars templates**.
+
+## Overview
+
+`generator.handlebars` solves the problem of repetitive file generation. Given a JSON model and a set of Handlebars templates, it automatically produces multiple output files — perfect for scaffolding code, generating documentation, creating configuration files, or any task where you need consistent, data-driven text output.
+
+### Core Flow
+
+```
+JSON Model  →  .hbs Template + .hbs.settings.json  →  Generated Files
+```
+
+### Key Features
+
+- 🔄 **Iterate over model arrays** — generate one file per item with a single template
+- ✂️ **Split templates** — produce multiple files from one template using markers
+- ⚙️ **Script hooks** — transform the model before generation with `.hbs.js` files
+- 🧩 **Partials** — reuse template fragments across multiple templates
+- 🔌 **Plugin system** — register custom Handlebars helpers and lifecycle hooks
+- ✅ **Validation & preview** — dry-run mode to inspect output before writing
+- 🔁 **Watch mode** — auto-regenerate when templates or models change
+- 📟 **CLI + Programmatic API** — use from the command line or directly in Node.js
+- 🟦 **TypeScript support** — included `.d.ts` declarations
 
 ## Installation
 
@@ -41,20 +66,25 @@ npx generator-hbs watch -t ./templates -m ./model.json
 | `watch` | Watch for changes and regenerate |
 
 ### Test
+
 ```bash
 node generate.js
 ```
 
 ## Programmatic Usage
+
 ___
 
 ### 1. Include the library
+
 ```javascript
 const Generator = require('generator.handlebars');
 ```
+
 ___
 
 ### 2. Load or define a model
+
 ```javascript
 // Load a model
 const model = require("./sample-templates/sample-model.json");
@@ -84,8 +114,8 @@ const model = {
     ]
 };
 ```
-___
 
+___
 
 ### 3. Define a template
 
@@ -105,6 +135,7 @@ You have access to the current scoped item in the Items array:
         Id: {{Id}}  Description: {{Description}}
       {{/each}}
 ```
+
 ___
 
 ### 4. Define the template settings
@@ -123,7 +154,6 @@ Create a template settings file: ./sample-templates/sample.hbs.settings.json
 **Note:** _When using backslashes in a path, you must escape the backslashes an additional time if it precedes a Handldebars expression_
 ___
 
-
 ### 5. Create a Template Loader
 
 Create a Template Loader and pass it the path to the directory containing the templates.
@@ -132,6 +162,7 @@ The loader will automatically load all template files ending in ".hbs" and their
 ```javascript
 const loader = new Generator.TemplateLoader('./sample-templates');
 ```
+
 ___
 
 ### 6. Load and generate the templates
@@ -170,6 +201,7 @@ loader.load(function (templates) {
     }
 });
 ```
+
 ___
 
 ### 7. Async/Await Support
@@ -190,6 +222,7 @@ const template = new Generator.Template('./sample-templates/sample.hbs');
 const results = template.generate(model);
 await template.writeAsync(results);
 ```
+
 ___
 
 ### 8. Validation & Preview Mode
@@ -217,6 +250,7 @@ previews.forEach(p => {
 // Generate without writing
 const results = loader.generate(model, { write: false });
 ```
+
 ___
 
 ### 9. Error Handling
@@ -346,6 +380,7 @@ pluginManager.register({
   transformModel: (model) => ({ ...model, timestamp: new Date() })
 });
 ```
+
 ___
 
 ### 12. TypeScript Support
@@ -360,6 +395,7 @@ loader.load();
 
 const results = await loader.generateAsync(model, { write: true });
 ```
+
 ___
 
 ### 13. Custom Error Classes
@@ -390,6 +426,7 @@ try {
 // Format multiple errors
 console.log(formatErrorSummary(loader.errors));
 ```
+
 ___
 
 ### 14. JSON Schema for Settings
